@@ -11,24 +11,27 @@ pub fn main() !void {
     defer input.close();
     const size = try input.getEndPos();
 
-    var allocator = std.heap.DirectAllocator.init().allocator;
+    var direct_alloc = std.heap.DirectAllocator.init().allocator;
 
-    var buf = try std.Buffer.initSize(&allocator, size); // Allocate & Pray
+    var buf = try std.Buffer.initSize(&direct_alloc, size); // Allocate & Pray
     defer buf.deinit();
 
     _ = input.read(buf.toSlice());
-    var sum: i64 = 0;
 
-    var map = std.AutoHashMap(i64, void).init(&allocator);
+    var nums = std.ArrayList(i64).init(&direct_alloc);
+    var lines = std.mem.split(buf.toSlice(), "\n");
+    while (lines.next()) |line| {
+        var i = try std.fmt.parseInt(i64, line, 10);
+        _ = nums.append(i);
+    }
+
+    var map = std.AutoHashMap(i64, void).init(&direct_alloc);
     defer map.deinit();
-
-    var x: i32 = 0;
+    var sum: i64 = 0;
     outer: while (true) {
-        var lines = std.mem.split(buf.toSlice(), "\n");
-        while (lines.next()) |line| {
-            const getOrPut = try map.getOrPut(sum);
-            if (getOrPut.found_existing) break :outer;
-            sum += try std.fmt.parseInt(i64, line, 10);
+        for (nums.toSlice()) |value| {
+            if (try map.put(sum, {})) |_| break :outer;
+            sum += value;
         }
     }
 
